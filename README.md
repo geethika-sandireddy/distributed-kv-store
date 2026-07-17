@@ -1,13 +1,1 @@
-# new_project-
-1
-something for job purpose only nice project 
-need to ask cloud
-2
-3
-4
-5
-6
-7
-8
-9
-why contribution graph not increasing beach
+

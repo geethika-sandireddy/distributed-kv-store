@@ -1,5 +1,7 @@
 # Persistent Key-Value Store
 
+[](https://github.com/geethika-sandireddy/distributed-kv-store/actions/workflows/ci.yml)
+
 A from-scratch persistent key-value store with crash recovery and rate
 limiting. No Redis, no external database libraries — the storage engine,
 durability layer, and eviction policy are all hand-built.
@@ -23,14 +25,17 @@ kvstore/
   recovery.py      # DurableStore: WAL + Store, replay-based crash recovery
   server.py        # FastAPI HTTP layer (thin — logic lives above)
   rate_limiter.py  # token bucket, per-client
+  cli.py           # command-line client over the HTTP API
 tests/
   test_store.py / test_ttl.py / test_lru.py / test_store_lru.py
-  test_wal.py           # includes torn-write / corruption cases
+  test_store_concurrency.py / test_recovery_concurrency.py
+  test_wal.py           # includes torn-write / corruption / concurrency cases
   test_recovery.py      # failure-injection: crash at each stage of a write
-  test_server.py
-  test_rate_limiter.py
+  test_server.py / test_cli.py / test_rate_limiter.py
 benchmarks/
   benchmark.py     # throughput + p50/p95/p99 latency at varying concurrency
+Dockerfile
+.github/workflows/ci.yml
 ```
 
 ## Durability model
@@ -68,6 +73,22 @@ curl -X PUT localhost:8000/keys/foo -d '{"value": "bar", "ttl_seconds": 60}'
 curl localhost:8000/keys/foo
 curl -X DELETE localhost:8000/keys/foo
 curl localhost:8000/status
+```
+
+Or with the included CLI:
+
+```bash
+python -m kvstore.cli set foo bar --ttl 60
+python -m kvstore.cli get foo
+python -m kvstore.cli delete foo
+python -m kvstore.cli status
+```
+
+### Docker
+
+```bash
+docker build -t kvstore .
+docker run -p 8000:8000 -v kvstore-data:/data kvstore
 ```
 
 ## Tests

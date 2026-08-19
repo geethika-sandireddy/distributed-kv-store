@@ -62,3 +62,33 @@ def test_set_with_ttl(client):
     assert r.status_code == 200
     r = client.get("/keys/a")
     assert r.json()["value"] == 1
+
+
+def test_rate_limit_returns_429_once_exceeded(monkeypatch, tmp_path):
+    # Small capacity + effectively no refill so this test isn't timing-sensitive.
+    monkeypatch.setenv("KVSTORE_WAL_PATH", str(tmp_path / "rl.wal"))
+    monkeypatch.setenv("KVSTORE_RATE_LIMIT_CAPACITY", "3")
+    monkeypatch.setenv("KVSTORE_RATE_LIMIT_REFILL", "0.001")
+    import kvstore.server as server_module
+    importlib.reload(server_module)
+    rl_client = TestClient(server_module.app)
+
+    for _ in range(3):
+        r = rl_client.get("/keys/missing", headers={"X-Client-ID": "test-client"})
+        assert r.status_code == 404  # allowed through, just no such key
+
+    r = rl_client.get("/keys/missing", headers={"X-Client-ID": "test-client"})
+    assert r.status_code == 429
+
+
+def test_status_endpoint_exempt_from_rate_limit(monkeypatch, tmp_path):
+    monkeypatch.setenv("KVSTORE_WAL_PATH", str(tmp_path / "rl2.wal"))
+    monkeypatch.setenv("KVSTORE_RATE_LIMIT_CAPACITY", "1")
+    monkeypatch.setenv("KVSTORE_RATE_LIMIT_REFILL", "0.001")
+    import kvstore.server as server_module
+    importlib.reload(server_module)
+    rl_client = TestClient(server_module.app)
+
+    for _ in range(5):
+        r = rl_client.get("/status")
+        assert r.status_code == 200

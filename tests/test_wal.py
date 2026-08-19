@@ -108,3 +108,24 @@ def test_crash_between_records_keeps_earlier_valid_ones(wal_path):
 
     records = list(WAL.read_all(wal_path))
     assert [r.key for r in records] == ["a", "b"]
+
+
+def test_concurrent_appends_do_not_interleave_bytes(wal_path):
+    """
+    Fire many threads at append() simultaneously on the same WAL
+    instance and confirm every record survives replay intact -- if
+    the internal write lock weren't there, concurrent writes could
+    interleave partial records and corrupt the log.
+    """
+    from concurrent.futures import ThreadPoolExecutor
+
+    with WAL(wal_path) as wal:
+        def do_append(i):
+            wal.append(WALRecord(op=OpType.SET, key=f"k{i}", value="x" * 50))
+
+        with ThreadPoolExecutor(max_workers=32) as pool:
+            list(pool.map(do_append, range(300)))
+
+    records = list(WAL.read_all(wal_path))
+    assert len(records) == 300
+    assert {r.key for r in records} == {f"k{i}" for i in range(300)}

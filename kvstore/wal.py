@@ -16,6 +16,11 @@ expect; if the file doesn't have that many bytes left, or the checksum
 doesn't match what's there, we know it's a torn write and stop
 replaying right there. That's what makes crash recovery safe.
 
+Thread safety: append() holds an internal write lock for the
+write+flush+fsync sequence, so concurrent callers never interleave
+partial records into the file -- each append() call is atomic with
+respect to other append() calls on the same WAL instance.
+
 Durability contract: append() calls flush() + os.fsync() by default,
 meaning the record is durable on disk before append() returns. This is
 also the answer to "when can I tell a client their write succeeded?"
@@ -28,6 +33,7 @@ import struct
 import zlib
 from dataclasses import dataclass
 from enum import Enum
+from threading import Lock
 from typing import Any, BinaryIO, Iterator, Optional
 
 _HEADER = struct.Struct(">II")  # length, crc32
@@ -84,13 +90,15 @@ class WAL:
         self._fsync = fsync
         # 'ab' so we always append, never clobber an existing log
         self._fh: BinaryIO = open(self.path, "ab")
+        self._write_lock = Lock()
 
     def append(self, record: WALRecord) -> None:
         data = record.to_bytes()
-        self._fh.write(data)
-        self._fh.flush()
-        if self._fsync:
-            os.fsync(self._fh.fileno())
+        with self._write_lock:
+            self._fh.write(data)
+            self._fh.flush()
+            if self._fsync:
+                os.fsync(self._fh.fileno())
 
     def close(self) -> None:
         self._fh.close()

@@ -81,3 +81,20 @@ pytest tests/ -v
 ```bash
 python benchmarks/benchmark.py
 ```
+
+Measured on this dev environment (fsync on every write, 200 set+get pairs
+per client) — not estimates, actual runs of the script above:
+
+| Concurrency | Throughput (ops/sec) | p50 (ms) | p95 (ms) | p99 (ms) |
+|---|---|---|---|---|
+| 1   | 15,665 | 0.117 | 0.148 | 0.227 |
+| 10  | 31,171 | 0.588 | 1.009 | 1.357 |
+| 50  | 29,423 | 2.903 | 6.452 | 9.167 |
+| 100 | 31,192 | 5.797 | 13.244 | 17.748 |
+
+Throughput plateaus around ~30K ops/sec past 10 concurrent clients — the
+fsync-per-write durability guarantee is the bottleneck, as expected for a
+WAL that calls `os.fsync()` on every append rather than batching. Numbers
+will vary by disk/hardware; rerun the script to get numbers for your own
+machine before quoting them anywhere.
+

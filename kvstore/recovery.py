@@ -29,25 +29,50 @@ before. Anything the caller does with that guarantee downstream
 (applying to memory, responding to the client) is safe to do
 afterwards because replay will always reconstruct it correctly even if
 the process dies one line of code later.
+Compaction: over time the WAL accumulates every SET/DELETE ever issued,
+even overwritten or deleted keys. compact() snapshots current state to
+a separate file, then truncates the WAL to empty. On the next startup,
+replay loads the snapshot first (the baseline), then replays whatever
+WAL records were appended after the last compaction. compact() and
+ongoing writes are serialized via a single lock (see _op_lock) rather
+than allowing concurrent writes during a compaction -- simpler to
+reason about correctly than trying to snapshot a moving target, at the
+cost of writes blocking for the (usually short) duration of a compact.
 """
 
+import os
+from threading import Lock
 from typing import Any, Optional
 
 from kvstore.store import Store, KeyNotFoundError
 from kvstore.wal import WAL, WALRecord, OpType
+from kvstore.snapshot import write_snapshot, read_snapshot
 
 
 class DurableStore:
     """A Store fronted by a WAL for durability and crash recovery.
 
-    On construction, replays any existing WAL at `wal_path` to rebuild
+    On construction, loads any existing snapshot (baseline state), then
+    replays any WAL records appended since that snapshot, to rebuild
     state before accepting new writes.
     """
 
     def __init__(self, wal_path: str, max_size: Optional[int] = None, fsync: bool = True):
+        self._wal_path = wal_path
+        self._snapshot_path = f"{wal_path}.snapshot"
+        self._fsync = fsync
+        self._op_lock = Lock()
         self._store = Store(max_size=max_size)
+        self.snapshot_loaded_count = self._load_snapshot()
         self.replayed_count = self._replay(wal_path)
         self._wal = WAL(wal_path, fsync=fsync)
+
+    def _load_snapshot(self) -> int:
+        count = 0
+        for record in read_snapshot(self._snapshot_path):
+            self._store.set(record["key"], record["value"], ttl_seconds=record["ttl_remaining_seconds"])
+            count += 1
+        return count
 
     def _replay(self, wal_path: str) -> int:
         count = 0
@@ -66,19 +91,40 @@ class DurableStore:
         return count
 
     def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> None:
-        self._wal.append(WALRecord(op=OpType.SET, key=key, value=value, ttl_seconds=ttl_seconds))
-        self._store.set(key, value, ttl_seconds=ttl_seconds)
+        with self._op_lock:
+            self._wal.append(WALRecord(op=OpType.SET, key=key, value=value, ttl_seconds=ttl_seconds))
+            self._store.set(key, value, ttl_seconds=ttl_seconds)
 
     def delete(self, key: str) -> None:
-        # Log the delete even if the key is already gone from memory
-        # (e.g. expired) -- that keeps the WAL an accurate record of
-        # client-issued operations, which matters if you ever want to
-        # audit or replicate off of it.
-        self._wal.append(WALRecord(op=OpType.DELETE, key=key))
-        try:
-            self._store.delete(key)
-        except KeyNotFoundError:
-            pass
+        with self._op_lock:
+            # Log the delete even if the key is already gone from memory
+            # (e.g. expired) -- that keeps the WAL an accurate record of
+            # client-issued operations, which matters if you ever want to
+            # audit or replicate off of it.
+            self._wal.append(WALRecord(op=OpType.DELETE, key=key))
+            try:
+                self._store.delete(key)
+            except KeyNotFoundError:
+                pass
+
+    def compact(self) -> int:
+        """Snapshots current state and truncates the WAL to empty.
+
+        Returns the number of entries written to the new snapshot.
+        Blocks concurrent set()/delete() calls for the duration (see
+        _op_lock) so the snapshot always reflects a single consistent
+        point in time rather than a state that was still being mutated
+        while being written out.
+        """
+        with self._op_lock:
+            entries = self._store.snapshot_entries()
+            write_snapshot(self._snapshot_path, entries, fsync=self._fsync)
+            self._wal.close()
+            # Truncate to empty and reopen -- the snapshot now holds
+            # everything up to this point, so the WAL can start fresh.
+            open(self._wal_path, "wb").close()
+            self._wal = WAL(self._wal_path, fsync=self._fsync)
+            return len(entries)
 
     def get(self, key: str) -> Any:
         return self._store.get(key)

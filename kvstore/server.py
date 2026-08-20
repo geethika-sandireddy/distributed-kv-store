@@ -32,8 +32,8 @@ rate_limiter = TokenBucketRateLimiter(capacity=RATE_LIMIT_CAPACITY, refill_rate=
 
 @app.middleware("http")
 async def rate_limit_middleware(request: Request, call_next):
-    # /status is exempt so monitoring/health checks never get throttled.
-    if request.url.path == "/status":
+    # /status and /health are exempt so monitoring/health checks never get throttled.
+    if request.url.path in ("/status", "/health"):
         return await call_next(request)
     client_id = request.headers.get("X-Client-ID", request.client.host if request.client else "unknown")
     if not rate_limiter.allow(client_id):
@@ -59,6 +59,15 @@ class StatusResponse(BaseModel):
 @app.get("/status", response_model=StatusResponse)
 def status():
     return StatusResponse(size=len(store), replayed_on_startup=store.replayed_count)
+
+
+@app.get("/health")
+def health():
+    """Liveness check, distinct from /status: this only confirms the
+    process is up and able to respond, not the store's contents -- the
+    kind of thing a load balancer or orchestrator polls frequently and
+    shouldn't need to reason about dataset size for."""
+    return {"status": "ok"}
 
 
 @app.put("/keys/{key}")
@@ -87,3 +96,25 @@ def delete_key(key: str):
 @app.get("/keys")
 def list_keys():
     return {"keys": store.keys()}
+
+
+class BatchSetRequest(BaseModel):
+    items: dict[str, Any]
+    ttl_seconds: Optional[float] = None
+
+
+@app.post("/keys:batch")
+def batch_set(body: BatchSetRequest):
+    """Sets multiple keys in one request. Each key still gets its own
+    WAL record/fsync internally (no batched-fsync fast path yet -- see
+    README for that as a known limitation) -- this endpoint saves
+    round-trips, not fsyncs."""
+    for key, value in body.items.items():
+        store.set(key, value, ttl_seconds=body.ttl_seconds)
+    return {"count": len(body.items), "status": "ok"}
+
+
+@app.post("/admin/compact")
+def compact():
+    n = store.compact()
+    return {"snapshot_entries": n, "status": "ok"}

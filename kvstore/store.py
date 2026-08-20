@@ -103,3 +103,23 @@ class Store:
         with self._lock:
             self._sweep_expired()
             return len(self._data)
+
+    def snapshot_entries(self) -> dict[str, tuple[Any, Optional[float]]]:
+        """
+        Returns {key: (value, ttl_remaining_seconds)} for every live,
+        non-expired key. ttl_remaining_seconds is None for keys with no
+        TTL. Computed relative to *now* rather than returning the raw
+        expires_at, because expires_at is a time.monotonic() value that
+        is meaningless across a process restart -- only the remaining
+        duration survives a restart correctly.
+        """
+        import time
+
+        with self._lock:
+            self._sweep_expired()
+            result = {}
+            now = time.monotonic()
+            for key, entry in self._data.items():
+                remaining = None if entry.expires_at is None else max(0.0, entry.expires_at - now)
+                result[key] = (entry.value, remaining)
+            return result

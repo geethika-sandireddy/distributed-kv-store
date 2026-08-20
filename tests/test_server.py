@@ -92,3 +92,34 @@ def test_status_endpoint_exempt_from_rate_limit(monkeypatch, tmp_path):
     for _ in range(5):
         r = rl_client.get("/status")
         assert r.status_code == 200
+
+
+def test_health_endpoint(client):
+    r = client.get("/health")
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+
+
+def test_batch_set(client):
+    r = client.post("/keys:batch", json={"items": {"a": 1, "b": 2, "c": 3}})
+    assert r.status_code == 200
+    assert r.json()["count"] == 3
+    assert client.get("/keys/a").json()["value"] == 1
+    assert client.get("/keys/b").json()["value"] == 2
+    assert client.get("/keys/c").json()["value"] == 3
+
+
+def test_batch_set_with_ttl(client):
+    r = client.post("/keys:batch", json={"items": {"a": 1}, "ttl_seconds": 60})
+    assert r.status_code == 200
+    assert client.get("/keys/a").json()["value"] == 1
+
+
+def test_compact_endpoint(client):
+    client.put("/keys/a", json={"value": 1})
+    client.put("/keys/a", json={"value": 2})  # overwrite
+    r = client.post("/admin/compact")
+    assert r.status_code == 200
+    assert r.json()["snapshot_entries"] == 1
+    # data still readable after compaction
+    assert client.get("/keys/a").json()["value"] == 2

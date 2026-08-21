@@ -45,6 +45,20 @@ def test_cmd_status_prints_dict(capsys):
     assert "5" in out and "2" in out
 
 
+def test_cmd_health_prints_ok(capsys):
+    with patch("urllib.request.urlopen", return_value=_fake_response({"status": "ok"})):
+        cli.cmd_health(Namespace())
+    out = capsys.readouterr().out
+    assert "ok" in out
+
+
+def test_cmd_compact_prints_result(capsys):
+    with patch("urllib.request.urlopen", return_value=_fake_response({"snapshot_entries": 3, "status": "ok"})):
+        cli.cmd_compact(Namespace())
+    out = capsys.readouterr().out
+    assert "3" in out
+
+
 def test_set_with_ttl_includes_ttl_in_body():
     captured = {}
 

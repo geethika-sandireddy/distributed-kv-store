@@ -8,6 +8,8 @@ Usage:
     python -m kvstore.cli delete foo
     python -m kvstore.cli keys
     python -m kvstore.cli status
+    python -m kvstore.cli health
+    python -m kvstore.cli compact
 
 Talks to KVSTORE_URL (default http://localhost:8000) over HTTP. Kept
 deliberately separate from server.py so the server has zero dependency
@@ -68,6 +70,16 @@ def cmd_status(args):
     print(result)
 
 
+def cmd_health(args):
+    result = _request("GET", "/health")
+    print(result)
+
+
+def cmd_compact(args):
+    result = _request("POST", "/admin/compact")
+    print(result)
+
+
 def main():
     parser = argparse.ArgumentParser(description="KV store CLI client")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -91,6 +103,12 @@ def main():
 
     p_status = sub.add_parser("status")
     p_status.set_defaults(func=cmd_status)
+
+    p_health = sub.add_parser("health")
+    p_health.set_defaults(func=cmd_health)
+
+    p_compact = sub.add_parser("compact")
+    p_compact.set_defaults(func=cmd_compact)
 
     args = parser.parse_args()
     args.func(args)

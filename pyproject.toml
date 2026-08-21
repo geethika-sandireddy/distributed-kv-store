@@ -1,0 +1,36 @@
+[project]
+name = "distributed-kv-store"
+version = "0.1.0"
+description = "A from-scratch persistent key-value store with crash recovery and rate limiting"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.110",
+    "uvicorn[standard]>=0.29",
+    "pydantic>=2.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0", "httpx>=0.27", "ruff>=0.4", "mypy>=1.10"]
+
+[project.scripts]
+kvstore-cli = "kvstore.cli:main"
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501", "UP042"]  # E501: line length is a judgment call, not a hard gate.
+# UP042: OpType intentionally inherits (str, Enum) rather than StrEnum so
+# `record.op == "SET"` comparisons and json.dumps(record.op.value) both stay
+# obvious at call sites without readers needing to know StrEnum's semantics.
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+# Deliberately not strict yet -- the codebase leans on dataclasses and
+# dict[str, Any] payloads (JSON boundaries) where full strictness adds
+# more noise than safety right now. Tightening this is a reasonable
+# next step, not done in this pass.
+disallow_untyped_defs = false

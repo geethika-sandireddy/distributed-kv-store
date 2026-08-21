@@ -1,6 +1,6 @@
 import pytest
 
-from kvstore.store import Store, KeyNotFoundError
+from kvstore.store import KeyNotFoundError, Store
 
 
 def test_set_and_get():

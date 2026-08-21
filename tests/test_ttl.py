@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from kvstore.store import Store, KeyNotFoundError
+from kvstore.store import KeyNotFoundError, Store
 
 
 def test_set_without_ttl_never_expires():

@@ -1,6 +1,6 @@
 import pytest
 
-from kvstore.store import Store, KeyNotFoundError
+from kvstore.store import KeyNotFoundError, Store
 
 
 def test_no_eviction_without_max_size():

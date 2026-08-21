@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from kvstore.snapshot import write_snapshot, read_snapshot
+from kvstore.snapshot import read_snapshot, write_snapshot
 
 
 @pytest.fixture
@@ -42,7 +42,6 @@ def test_empty_snapshot_roundtrips(snap_path):
 
 def test_torn_snapshot_write_stops_at_tear(snap_path):
     write_snapshot(snap_path, {"a": (1, None), "b": (2, None)})
-    good_size = os.path.getsize(snap_path)
     with open(snap_path, "ab") as f:
         f.write(b"\x00\x00\x00\xff")  # bogus partial header
 

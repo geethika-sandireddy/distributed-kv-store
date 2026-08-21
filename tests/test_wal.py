@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from kvstore.wal import WAL, WALRecord, OpType
+from kvstore.wal import WAL, OpType, WALRecord
 
 
 @pytest.fixture

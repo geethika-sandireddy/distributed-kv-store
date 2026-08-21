@@ -1,11 +1,9 @@
-import os
 import struct
 
 import pytest
 
 from kvstore.recovery import DurableStore
-from kvstore.store import KeyNotFoundError
-from kvstore.wal import WAL, WALRecord, OpType
+from kvstore.wal import WAL, OpType, WALRecord
 
 
 @pytest.fixture

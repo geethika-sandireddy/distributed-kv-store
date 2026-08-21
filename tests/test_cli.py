@@ -1,7 +1,7 @@
 import io
 import json
 from argparse import Namespace
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

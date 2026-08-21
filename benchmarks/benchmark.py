@@ -13,11 +13,10 @@ Run:
     python benchmarks/benchmark.py
 """
 
-import statistics
+import sys
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -72,8 +71,8 @@ def run_at_concurrency(wal_path: str, concurrency: int) -> None:
 
 
 def main():
-    import tempfile
     import os
+    import tempfile
 
     print("Persistent KV Store -- benchmark")
     print(f"({OPS_PER_CLIENT} set+get pairs per client, fsync=True on every write)")

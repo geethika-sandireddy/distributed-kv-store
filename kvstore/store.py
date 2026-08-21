@@ -8,10 +8,10 @@ tested in isolation.
 """
 
 from threading import RLock
-from typing import Any, Optional
+from typing import Any
 
-from kvstore.ttl import TTLEntry, make_entry
 from kvstore.lru import LRUTracker
+from kvstore.ttl import TTLEntry, make_entry
 
 
 class KeyNotFoundError(KeyError):
@@ -25,12 +25,12 @@ class Store:
     Not durable on its own -- see the WAL layer for that.
     """
 
-    def __init__(self, max_size: Optional[int] = None) -> None:
+    def __init__(self, max_size: int | None = None) -> None:
         self._data: dict[str, TTLEntry] = {}
         self._lock = RLock()
         self._lru = LRUTracker(capacity=max_size) if max_size else None
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: float | None = None) -> None:
         with self._lock:
             self._data[key] = make_entry(value, ttl_seconds)
             if self._lru is not None:
@@ -46,7 +46,7 @@ class Store:
                 self._lru.touch(key)
             return entry.value
 
-    def get_optional(self, key: str) -> Optional[Any]:
+    def get_optional(self, key: str) -> Any | None:
         """Non-raising variant of get(); returns None if missing or expired."""
         with self._lock:
             entry = self._data.get(key)
@@ -63,7 +63,9 @@ class Store:
                 self._lru.remove(key)
 
     def _evict_if_needed(self) -> None:
-        """Evicts LRU keys until back under capacity. Caller holds the lock."""
+        """Evicts LRU keys until back under capacity. Caller holds the lock
+        and must only call this when self._lru is not None."""
+        assert self._lru is not None
         while self._lru.is_over_capacity():
             victim = self._lru.evict_candidate()
             if victim is None:
@@ -104,7 +106,7 @@ class Store:
             self._sweep_expired()
             return len(self._data)
 
-    def snapshot_entries(self) -> dict[str, tuple[Any, Optional[float]]]:
+    def snapshot_entries(self) -> dict[str, tuple[Any, float | None]]:
         """
         Returns {key: (value, ttl_remaining_seconds)} for every live,
         non-expired key. ttl_remaining_seconds is None for keys with no

@@ -8,7 +8,6 @@ the single source of truth for data and this stays easy to unit test on
 its own.
 """
 
-from typing import Optional
 
 
 class _Node:
@@ -16,8 +15,8 @@ class _Node:
 
     def __init__(self, key: str):
         self.key = key
-        self.prev: Optional["_Node"] = None
-        self.next: Optional["_Node"] = None
+        self.prev: _Node | None = None
+        self.next: _Node | None = None
 
 
 class LRUTracker:
@@ -36,8 +35,8 @@ class LRUTracker:
             raise ValueError("capacity must be positive")
         self.capacity = capacity
         self._nodes: dict[str, _Node] = {}
-        self._head: Optional[_Node] = None  # most recently used
-        self._tail: Optional[_Node] = None  # least recently used
+        self._head: _Node | None = None  # most recently used
+        self._tail: _Node | None = None  # least recently used
 
     def __len__(self) -> int:
         return len(self._nodes)
@@ -57,7 +56,7 @@ class LRUTracker:
     def is_over_capacity(self) -> bool:
         return len(self._nodes) > self.capacity
 
-    def evict_candidate(self) -> Optional[str]:
+    def evict_candidate(self) -> str | None:
         """Returns the LRU key, or None if empty. Does not remove it."""
         return self._tail.key if self._tail is not None else None
 

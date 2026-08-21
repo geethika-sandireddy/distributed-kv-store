@@ -8,15 +8,15 @@ HTTP client.
 """
 
 import os
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from kvstore.rate_limiter import TokenBucketRateLimiter
 from kvstore.recovery import DurableStore
 from kvstore.store import KeyNotFoundError
-from kvstore.rate_limiter import TokenBucketRateLimiter
 
 WAL_PATH = os.environ.get("KVSTORE_WAL_PATH", "data/kvstore.wal")
 MAX_SIZE = int(os.environ["KVSTORE_MAX_SIZE"]) if os.environ.get("KVSTORE_MAX_SIZE") else None
@@ -43,7 +43,7 @@ async def rate_limit_middleware(request: Request, call_next):
 
 class SetRequest(BaseModel):
     value: Any
-    ttl_seconds: Optional[float] = None
+    ttl_seconds: float | None = None
 
 
 class GetResponse(BaseModel):
@@ -100,7 +100,7 @@ def list_keys():
 
 class BatchSetRequest(BaseModel):
     items: dict[str, Any]
-    ttl_seconds: Optional[float] = None
+    ttl_seconds: float | None = None
 
 
 @app.post("/keys:batch")

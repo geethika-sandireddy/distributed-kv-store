@@ -30,12 +30,13 @@ import json
 import os
 import struct
 import zlib
-from typing import Any, Iterator, Optional
+from collections.abc import Iterator
+from typing import Any
 
 _HEADER = struct.Struct(">II")  # length, crc32 -- same framing as wal.py
 
 
-def write_snapshot(path: str, entries: dict[str, tuple[Any, Optional[float]]], fsync: bool = True) -> None:
+def write_snapshot(path: str, entries: dict[str, tuple[Any, float | None]], fsync: bool = True) -> None:
     """entries: {key: (value, ttl_remaining_seconds_or_None)}"""
     tmp_path = f"{path}.tmp"
     with open(tmp_path, "wb") as f:

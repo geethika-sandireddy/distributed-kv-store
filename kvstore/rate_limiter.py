@@ -19,7 +19,6 @@ against each other under concurrent load.
 import time
 from dataclasses import dataclass, field
 from threading import Lock
-from typing import Dict
 
 
 @dataclass
@@ -41,7 +40,7 @@ class TokenBucketRateLimiter:
             raise ValueError("refill_rate must be positive")
         self.capacity = capacity
         self.refill_rate = refill_rate
-        self._buckets: Dict[str, _Bucket] = {}
+        self._buckets: dict[str, _Bucket] = {}
         self._buckets_lock = Lock()  # guards creation of new client buckets only
 
     def _get_bucket(self, client_id: str) -> _Bucket:

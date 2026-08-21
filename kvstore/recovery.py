@@ -40,13 +40,12 @@ reason about correctly than trying to snapshot a moving target, at the
 cost of writes blocking for the (usually short) duration of a compact.
 """
 
-import os
 from threading import Lock
-from typing import Any, Optional
+from typing import Any
 
-from kvstore.store import Store, KeyNotFoundError
-from kvstore.wal import WAL, WALRecord, OpType
-from kvstore.snapshot import write_snapshot, read_snapshot
+from kvstore.snapshot import read_snapshot, write_snapshot
+from kvstore.store import KeyNotFoundError, Store
+from kvstore.wal import WAL, OpType, WALRecord
 
 
 class DurableStore:
@@ -57,7 +56,7 @@ class DurableStore:
     state before accepting new writes.
     """
 
-    def __init__(self, wal_path: str, max_size: Optional[int] = None, fsync: bool = True):
+    def __init__(self, wal_path: str, max_size: int | None = None, fsync: bool = True):
         self._wal_path = wal_path
         self._snapshot_path = f"{wal_path}.snapshot"
         self._fsync = fsync
@@ -90,7 +89,7 @@ class DurableStore:
             count += 1
         return count
 
-    def set(self, key: str, value: Any, ttl_seconds: Optional[float] = None) -> None:
+    def set(self, key: str, value: Any, ttl_seconds: float | None = None) -> None:
         with self._op_lock:
             self._wal.append(WALRecord(op=OpType.SET, key=key, value=value, ttl_seconds=ttl_seconds))
             self._store.set(key, value, ttl_seconds=ttl_seconds)
@@ -129,7 +128,7 @@ class DurableStore:
     def get(self, key: str) -> Any:
         return self._store.get(key)
 
-    def get_optional(self, key: str) -> Optional[Any]:
+    def get_optional(self, key: str) -> Any | None:
         return self._store.get_optional(key)
 
     def exists(self, key: str) -> bool:

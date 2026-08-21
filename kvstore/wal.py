@@ -31,10 +31,11 @@ import json
 import os
 import struct
 import zlib
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum
 from threading import Lock
-from typing import Any, BinaryIO, Iterator, Optional
+from typing import Any, BinaryIO
 
 _HEADER = struct.Struct(">II")  # length, crc32
 
@@ -49,7 +50,7 @@ class WALRecord:
     op: OpType
     key: str
     value: Any = None
-    ttl_seconds: Optional[float] = None
+    ttl_seconds: float | None = None
 
     def to_bytes(self) -> bytes:
         payload = json.dumps(

@@ -10,22 +10,22 @@ behavior deterministic and easy to test.
 
 import time
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 
 @dataclass
 class TTLEntry:
     value: Any
-    expires_at: Optional[float]  # monotonic timestamp; None = no expiry
+    expires_at: float | None  # monotonic timestamp; None = no expiry
 
-    def is_expired(self, now: Optional[float] = None) -> bool:
+    def is_expired(self, now: float | None = None) -> bool:
         if self.expires_at is None:
             return False
         now = time.monotonic() if now is None else now
         return now >= self.expires_at
 
 
-def make_entry(value: Any, ttl_seconds: Optional[float]) -> TTLEntry:
+def make_entry(value: Any, ttl_seconds: float | None) -> TTLEntry:
     if ttl_seconds is None:
         return TTLEntry(value=value, expires_at=None)
     if ttl_seconds <= 0:

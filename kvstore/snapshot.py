@@ -36,6 +36,20 @@ from typing import Any
 _HEADER = struct.Struct(">II")  # length, crc32 -- same framing as wal.py
 
 
+def fsync_directory(dirpath: str) -> None:
+    """Make a rename durable by fsyncing the containing directory (POSIX only; best effort)."""
+    try:
+        fd = os.open(dirpath, os.O_RDONLY)
+    except OSError:
+        return  # e.g. Windows: directories cannot be opened this way
+    try:
+        os.fsync(fd)
+    except OSError:
+        pass
+    finally:
+        os.close(fd)
+
+
 def write_snapshot(path: str, entries: dict[str, tuple[Any, float | None]], fsync: bool = True) -> None:
     """entries: {key: (value, ttl_remaining_seconds_or_None)}"""
     tmp_path = f"{path}.tmp"
@@ -51,6 +65,8 @@ def write_snapshot(path: str, entries: dict[str, tuple[Any, float | None]], fsyn
         if fsync:
             os.fsync(f.fileno())
     os.replace(tmp_path, path)  # atomic on POSIX -- old file, if any, is fully replaced
+    if fsync:
+        fsync_directory(os.path.dirname(os.path.abspath(path)))
 
 
 def read_snapshot(path: str) -> Iterator[dict]:

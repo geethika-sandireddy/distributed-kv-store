@@ -1,5 +1,7 @@
 # Persistent Key-Value Store
 
+> **Status: single node today, Raft replication in progress** (work happens on the `raft` branch; the single-node release is tagged `v1-single-node`). This README does not claim "distributed" until a 3-process failover test passes.
+
 [](https://github.com/geethika-sandireddy/distributed-kv-store/actions/workflows/ci.yml)
 [](LICENSE)
 
@@ -147,17 +149,20 @@ pytest tests/ -v
 python benchmarks/benchmark.py
 ```
 
-Measured on this dev environment (fsync on every write, 200 set+get pairs
-per client) - not estimates, actual runs of the script above:
+Re-run on a cloud sandbox VM (Intel Xeon @ 2.80GHz, 1 vCPU, Ubuntu 24.04,
+ext4 on a virtual disk, fsync on every write, 200 set+get pairs per client).
+The numbers previously in this table came from an unnamed environment and
+were higher; the sandbox has a single slow vCPU, so treat both sets as
+machine-specific and rerun on your own hardware before quoting them.
 
 | Concurrency | Throughput (ops/sec) | p50 (ms) | p95 (ms) | p99 (ms) |
 |---|---|---|---|---|
-| 1   | 15,665 | 0.117 | 0.148 | 0.227 |
-| 10  | 31,171 | 0.588 | 1.009 | 1.357 |
-| 50  | 29,423 | 2.903 | 6.452 | 9.167 |
-| 100 | 31,192 | 5.797 | 13.244 | 17.748 |
+| 1   | 9,757 | 0.188 | 0.278 | 0.331 |
+| 10  | 8,226 | 2.283 | 4.384 | 5.380 |
+| 50  | 7,464 | 12.856 | 26.475 | 30.966 |
+| 100 | 7,165 | 26.459 | 55.611 | 65.559 |
 
-Throughput plateaus around ~30K ops/sec past 10 concurrent clients - the
+Throughput plateaus past 1 concurrent client on this VM - the
 fsync-per-write durability guarantee is the bottleneck, as expected for a
 WAL that calls `os.fsync()` on every append rather than batching. Numbers
 will vary by disk/hardware; rerun the script to get numbers for your own

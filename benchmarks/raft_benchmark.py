@@ -83,7 +83,7 @@ def main() -> None:
     out = {"machine": machine_info(), "results": results, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime())}
     Path("results").mkdir(exist_ok=True)
     Path("results/raft_bench.json").write_text(json.dumps(out, indent=2))
-    print("| nodes | p50 (ms) | p95 (ms) | p99 (ms) | throughput (ops/s, %d clients) |\n|---|---|---|---|---|" % a.concurrency)
+    print(f"| nodes | p50 (ms) | p95 (ms) | p99 (ms) | throughput (ops/s, {a.concurrency} clients) |\n|---|---|---|---|---|")
     for r in results:
         print(f"| {r['nodes']} | {r['p50_ms']} | {r['p95_ms']} | {r['p99_ms']} | {r['throughput_ops_s']} |")
 

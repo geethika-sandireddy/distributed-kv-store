@@ -143,15 +143,18 @@ network are injected, which is what makes the simulator (`kvstore/raft/sim.py`) 
 ### Cluster benchmark
 
 `python benchmarks/raft_benchmark.py` starts real processes with fsync on and writes
-`results/raft_bench.json` (numbers plus machine info). Run on a 1-vCPU cloud sandbox (Intel Xeon @ 2.10GHz,
-Linux, Python 3.12), 200 sequential writes for latency and 8 concurrent clients for throughput:
+`results/raft_bench.json` (numbers plus machine info). Run on the same 1-vCPU cloud sandbox as above
+(Intel Xeon @ 2.10GHz, Linux, Python 3.12): 200 sequential writes for latency, 8 concurrent clients for throughput.
 
 | Nodes | p50 (ms) | p95 (ms) | p99 (ms) | Throughput (ops/s) |
 |---|---|---|---|---|
-| 1 | 1.11 | 1.39 | 1.56 | 445.5 |
-| 3 | 4.44 | 8.57 | 9.30 | 240.2 |
+| 1 | 1.13 | 1.47 | 1.87 | 424.4 |
+| 3 | 7.38 | 9.41 | 10.14 | 215.9 |
 
-All three nodes share one vCPU here, so the 3-node numbers are pessimistic. Rerun on your own hardware before quoting.
+These numbers are noisy: an earlier run on the same VM gave a 3-node p50 of 4.44 ms (p95 8.57, p99 9.30,
+240.2 ops/s) and a 1-node p50 of 1.11 ms. All three nodes share a single vCPU here, so the 3-node figures are
+pessimistic and the spread is wide. They are not a statement about real multi-machine deployments.
+Rerun on your own hardware before quoting.
 
 ### Limitations (honest list)
 
@@ -252,20 +255,19 @@ pytest tests/ -v   # 165 tests, about 20 seconds here (the original 107 still pa
 python benchmarks/benchmark.py
 ```
 
-Re-run on a cloud sandbox VM (Intel Xeon @ 2.80GHz, 1 vCPU, Ubuntu 24.04,
-ext4 on a virtual disk, fsync on every write, 200 set+get pairs per client).
-The numbers previously in this table came from an unnamed environment and
-were higher; the sandbox has a single slow vCPU, so treat both sets as
-machine-specific and rerun on your own hardware before quoting them.
+Re-run on a cloud sandbox VM (Intel Xeon @ 2.10GHz, 1 vCPU, Linux, Python 3.12, fsync on every
+write, 200 set+get pairs per client). The same VM produced the Raft numbers below. Figures like these
+vary from run to run and machine to machine, so treat them as indicative and rerun on your own
+hardware before quoting them.
 
 | Concurrency | Throughput (ops/sec) | p50 (ms) | p95 (ms) | p99 (ms) |
 |---|---|---|---|---|
-| 1   | 9,757 | 0.188 | 0.278 | 0.331 |
-| 10  | 8,226 | 2.283 | 4.384 | 5.380 |
-| 50  | 7,464 | 12.856 | 26.475 | 30.966 |
-| 100 | 7,165 | 26.459 | 55.611 | 65.559 |
+| 1   | 11,223 | 0.154 | 0.274 | 0.413 |
+| 10  | 10,244 | 1.884 | 3.731 | 4.290 |
+| 50  | 12,155 | 7.296 | 16.355 | 22.734 |
+| 100 | 11,568 | 16.343 | 32.365 | 40.769 |
 
-Throughput plateaus past 1 concurrent client on this VM - the
+Throughput is roughly flat across concurrency levels on this single-vCPU VM - the
 fsync-per-write durability guarantee is the bottleneck, as expected for a
 WAL that calls `os.fsync()` on every append rather than batching. Numbers
 will vary by disk/hardware; rerun the script to get numbers for your own

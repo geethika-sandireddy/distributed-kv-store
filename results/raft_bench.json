@@ -11,25 +11,25 @@
     {
       "nodes": 1,
       "sequential_ops": 200,
-      "p50_ms": 1.11,
-      "p95_ms": 1.39,
-      "p99_ms": 1.56,
-      "mean_ms": 1.14,
+      "p50_ms": 1.13,
+      "p95_ms": 1.47,
+      "p99_ms": 1.87,
+      "mean_ms": 1.18,
       "concurrency": 8,
-      "throughput_ops_s": 445.5,
+      "throughput_ops_s": 424.4,
       "concurrent_ops_ok": 200
     },
     {
       "nodes": 3,
       "sequential_ops": 200,
-      "p50_ms": 4.44,
-      "p95_ms": 8.57,
-      "p99_ms": 9.3,
-      "mean_ms": 5.0,
+      "p50_ms": 7.38,
+      "p95_ms": 9.41,
+      "p99_ms": 10.14,
+      "mean_ms": 6.7,
       "concurrency": 8,
-      "throughput_ops_s": 240.2,
+      "throughput_ops_s": 215.9,
       "concurrent_ops_ok": 200
     }
   ],
-  "timestamp": "2026-11-08 07:26:26 UTC"
+  "timestamp": "2026-11-08 12:23:50 UTC"
 }

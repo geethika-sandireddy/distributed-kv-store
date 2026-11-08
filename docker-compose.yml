@@ -1,0 +1,34 @@
+# 3-node Raft cluster. Client API on localhost:8001, 8002, 8003 (writes must go to the leader;
+# followers answer 503 with the leader's address).   docker compose up --build
+x-node: &node
+  build: .
+  image: kvstore-raft
+  volumes: []
+  environment: &env
+    PEERS: "1=http://node1:8000,2=http://node2:8000,3=http://node3:8000"
+    RAFT_ELECTION_MIN: "0.5"
+    RAFT_ELECTION_MAX: "1.0"
+    RAFT_HEARTBEAT: "0.1"
+  command: ["uvicorn", "kvstore.raft.server:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+
+services:
+  node1:
+    <<: *node
+    environment: {<<: *env, NODE_ID: "1", DATA_DIR: /data}
+    ports: ["8001:8000"]
+    volumes: ["node1-data:/data"]
+  node2:
+    <<: *node
+    environment: {<<: *env, NODE_ID: "2", DATA_DIR: /data}
+    ports: ["8002:8000"]
+    volumes: ["node2-data:/data"]
+  node3:
+    <<: *node
+    environment: {<<: *env, NODE_ID: "3", DATA_DIR: /data}
+    ports: ["8003:8000"]
+    volumes: ["node3-data:/data"]
+
+volumes:
+  node1-data:
+  node2-data:
+  node3-data:

@@ -47,3 +47,15 @@ def test_torn_snapshot_write_stops_at_tear(snap_path):
 
     records = list(read_snapshot(snap_path))
     assert len(records) == 2  # both original records intact, garbage ignored
+
+
+def test_snapshot_fsyncs_directory_after_rename(tmp_path, monkeypatch):
+    import os
+
+    from kvstore import snapshot
+
+    calls = []
+    monkeypatch.setattr(snapshot, "fsync_directory", lambda d: calls.append(d))
+    snapshot.write_snapshot(str(tmp_path / "snap.json"), {"a": (1, None)})
+    assert calls == [str(tmp_path)]
+    assert os.path.exists(tmp_path / "snap.json")

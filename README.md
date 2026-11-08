@@ -42,6 +42,8 @@ kvstore/
   recovery.py      # DurableStore: WAL + Store + compaction, crash recovery
   server.py        # FastAPI HTTP layer (thin - logic lives above)
   rate_limiter.py  # token bucket, per-client
+  raft/            # storage, node (pure state machine), sim (deterministic cluster), statemachine,
+                   # server (HTTP), linearizability checker, localcluster (real processes)
   cli.py           # command-line client over the HTTP API
 tests/
   test_store.py / test_ttl.py / test_lru.py / test_store_lru.py
@@ -50,8 +52,12 @@ tests/
   test_recovery.py      # failure-injection: crash at each stage of a write
   test_snapshot.py / test_store_snapshot_entries.py / test_compaction.py
   test_server.py / test_cli.py / test_rate_limiter.py
+  test_raft_*.py        # rules, simulator + 200-seed fault injection, mutation check, 3-process failover, linearizability
 benchmarks/
   benchmark.py     # throughput + p50/p95/p99 latency at varying concurrency
+  raft_benchmark.py # commit latency and throughput, 1 node vs 3 nodes
+scripts/           # demo.py (kill the leader), demo_docker.sh
+docker-compose.yml # 3-node cluster
 Dockerfile
 pyproject.toml     # packaging + ruff/mypy config
 .github/workflows/ci.yml
@@ -237,7 +243,7 @@ docker run -p 8000:8000 -v kvstore-data:/data kvstore
 ## Tests
 
 ```bash
-pytest tests/ -v
+pytest tests/ -v   # 165 tests, about 20 seconds here (the original 107 still pass)
 ```
 
 ## Benchmarks

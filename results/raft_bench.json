@@ -1,0 +1,35 @@
+{
+  "machine": {
+    "cpu": "Intel(R) Xeon(R) Processor @ 2.10GHz",
+    "logical_cpus": 1,
+    "os": "Linux-6.18.44-fc-v310-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "fsync": true,
+    "note": "sandbox/dev machine; rerun on your own hardware before quoting"
+  },
+  "results": [
+    {
+      "nodes": 1,
+      "sequential_ops": 200,
+      "p50_ms": 1.11,
+      "p95_ms": 1.39,
+      "p99_ms": 1.56,
+      "mean_ms": 1.14,
+      "concurrency": 8,
+      "throughput_ops_s": 445.5,
+      "concurrent_ops_ok": 200
+    },
+    {
+      "nodes": 3,
+      "sequential_ops": 200,
+      "p50_ms": 4.44,
+      "p95_ms": 8.57,
+      "p99_ms": 9.3,
+      "mean_ms": 5.0,
+      "concurrency": 8,
+      "throughput_ops_s": 240.2,
+      "concurrent_ops_ok": 200
+    }
+  ],
+  "timestamp": "2026-11-08 07:26:26 UTC"
+}

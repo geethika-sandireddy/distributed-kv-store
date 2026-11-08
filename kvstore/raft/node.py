@@ -42,7 +42,7 @@ class RaftNode:
         storage: Any,
         rng: random.Random,
         config: Config | None = None,
-        apply_fn: Callable[[int, int, Any], None] | None = None,
+        apply_fn: Callable[[int, int, Any], Any] | None = None,
         now: float = 0.0,
     ) -> None:
         self.id = node_id

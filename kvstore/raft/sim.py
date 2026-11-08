@@ -50,9 +50,10 @@ class SimCluster:
     def _start(self, i: int) -> None:
         self.applied[i] = []  # the state machine is rebuilt by re-applying committed entries
         rng = random.Random(self.seed * 100003 + i * 131 + self.restarts[i])
-        self.nodes[i] = RaftNode(i, self.ids, self.storages[i], rng, self.cfg,
-                                 apply_fn=lambda idx, _t, cmd, i=i: self.applied[i].append((idx, cmd)),
-                                 now=self.time)
+        def apply(idx: int, _term: int, cmd: Any, i: int = i) -> None:
+            self.applied[i].append((idx, cmd))
+
+        self.nodes[i] = RaftNode(i, self.ids, self.storages[i], rng, self.cfg, apply_fn=apply, now=self.time)
 
     def crash(self, i: int) -> None:
         if self.nodes.get(i) is not None:
@@ -123,7 +124,9 @@ class SimCluster:
         node = self.nodes[node_id] if node_id is not None else self.leader()
         if node is None or node.role != LEADER:
             return None
-        index, outs = node.propose(command, self.time)
+        proposed, outs = node.propose(command, self.time)
+        assert proposed is not None
+        index = proposed
         self._send(node.id, outs)
         self._pending.append((index, node.term, command))
         return index, node.term

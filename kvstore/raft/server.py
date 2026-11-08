@@ -130,7 +130,9 @@ class RaftServer:
             if self.node.role != LEADER:
                 raise NotLeader
             cmd["ts"] = time.time()  # the leader's clock stamps the command; replicas never read their own
-            index, outs = self.node.propose(cmd, time.monotonic())
+            proposed, outs = self.node.propose(cmd, time.monotonic())
+            assert proposed is not None
+            index = proposed
             term = self.node.term
         self._dispatch(outs)
         deadline = time.monotonic() + CLIENT_TIMEOUT

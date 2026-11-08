@@ -55,7 +55,9 @@ def _read_records(path: str) -> tuple[list[dict], int]:
 
 
 def _replay(records: list[dict]) -> tuple[int, int | None, list[Entry]]:
-    term, vote, entries = 0, None, []
+    term: int = 0
+    vote: int | None = None
+    entries: list[Entry] = []
     for r in records:
         if r["t"] == "state":
             term, vote = r["term"], r["vote"]

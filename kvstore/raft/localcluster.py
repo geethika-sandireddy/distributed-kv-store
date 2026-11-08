@@ -98,3 +98,24 @@ class LocalCluster:
                 p.kill()
             p.wait()
         self.http.close()
+
+    def read(self, key: str, start: int | None = None):
+        """Linearizable read via the leader (following hints). Returns the value, or None if absent."""
+        target = start or self.alive()[0]
+        end = time.time() + 20
+        while time.time() < end:
+            try:
+                r = self.http.get(self.url(target) + f"/kv/{key}")
+                if r.status_code == 200:
+                    return r.json()["value"]
+                if r.status_code == 404:
+                    return None
+                hint = r.json().get("leader_id")
+                if hint in self.alive():
+                    target = hint
+            except (httpx.HTTPError, ValueError):
+                pass
+            if target not in self.alive():
+                target = self.alive()[0]
+            time.sleep(0.05)
+        raise TimeoutError(f"read {key} never completed")
